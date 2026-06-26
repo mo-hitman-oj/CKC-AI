@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CKC Jewellers · AI Concierge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #080808;
+      --panel: #0b0b0c;
+      --gold: #d9b673;
+      --gold-bright: #eccd8a;
+      --gold-soft: rgba(217, 182, 115, 0.72);
+      --line: rgba(217, 182, 115, 0.20);
+      --line-soft: rgba(255, 255, 255, 0.06);
+      --txt: #f3ede0;
+      --txt-dim: rgba(243, 237, 224, 0.55);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--txt);
+      font-family: 'Jost', sans-serif; -webkit-font-smoothing: antialiased;
+    }
+
+    #app { display: flex; width: 100vw; height: 100vh; }
+
+    /* =====================  LEFT  ===================== */
+    #left {
+      position: relative;
+      flex: 0 0 39%;
+      min-width: 380px;
+      max-width: 600px;
+      height: 100%;
+      overflow: hidden;
+      border-right: 1px solid var(--line-soft);
+    }
+    /* WebGL canvas fills the whole left panel */
+    #scene { position: absolute; inset: 0; z-index: 0; }
+    /* soft elliptical glow under the diamond, like a plinth of light */
+    #left::after {
+      content: ""; position: absolute; z-index: 1; pointer-events: none;
+      left: 50%; top: 52%; transform: translate(-50%, -50%);
+      width: 80%; height: 46%;
+      background: radial-gradient(ellipse at center, rgba(217,182,115,0.10), transparent 70%);
+      filter: blur(6px);
+    }
+
+    #left-ui {
+      position: absolute; inset: 0; z-index: 2;
+      display: flex; flex-direction: column; align-items: center;
+      pointer-events: none;
+      padding: 38px 34px 42px;
+    }
+    #left-ui > * { pointer-events: auto; }
+
+    /* Logo */
+    #logo { width: 100%; text-align: left; opacity: 0; animation: fadeIn 1.8s ease .3s forwards; }
+    #logo .crown { display: block; width: 38px; height: 22px; margin-bottom: 4px; }
+    #logo .ckc {
+      font-family: 'Cormorant Garamond', serif; font-weight: 600;
+      font-size: 46px; line-height: 0.9; letter-spacing: 0.06em; color: #f6efe0;
+    }
+    #logo .jw {
+      font-weight: 300; letter-spacing: 0.46em; font-size: 12px;
+      color: var(--gold); margin-top: 7px; text-indent: 0.46em;
+    }
+    #logo .since {
+      display: flex; align-items: center; gap: 10px; margin-top: 8px;
+      font-size: 9.5px; letter-spacing: 0.32em; color: var(--txt-dim); text-indent: 0.32em;
+    }
+    #logo .since::before { content: ""; width: 22px; height: 1px; background: var(--line); }
+
+    /* Caption / tagline */
+    #entity-text {
+      margin-top: auto;
+      width: 100%; max-width: 360px; text-align: center; min-height: 64px;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    #subline {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400; font-size: 22px; line-height: 1.4; color: #efe6d4;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+    #subline.live { color: var(--gold-bright); }
+
+    /* Speak controls */
+    #speak-row {
+      margin-top: 26px; display: flex; align-items: center; gap: 16px;
+      opacity: 0; animation: fadeIn 1.8s ease .9s forwards;
+    }
+    #tapSpeak {
+      display: inline-flex; align-items: center; gap: 14px;
+      padding: 16px 34px; border-radius: 40px;
+      background: rgba(217,182,115,0.04);
+      border: 1px solid var(--gold); color: var(--gold-bright);
+      font-family: 'Jost', sans-serif; font-weight: 400; font-size: 16px; letter-spacing: 0.04em;
+      cursor: pointer; transition: background .4s ease, box-shadow .5s ease, transform .3s ease;
+    }
+    #tapSpeak:hover { background: rgba(217,182,115,0.10); box-shadow: 0 14px 40px -22px rgba(217,182,115,0.8); transform: translateY(-1px); }
+    #tapSpeak.speaking { background: rgba(217,182,115,0.14); box-shadow: 0 0 0 1px rgba(217,182,115,0.35), 0 0 40px -8px rgba(217,182,115,0.5); }
+    /* waveform */
+    .wave { display: inline-flex; align-items: center; gap: 3px; height: 18px; }
+    .wave i {
+      width: 3px; height: 6px; border-radius: 2px; background: var(--gold-bright);
+      animation: waveIdle 1.6s ease-in-out infinite;
+    }
+    .wave i:nth-child(2){ animation-delay:.15s } .wave i:nth-child(3){ animation-delay:.3s }
+    .wave i:nth-child(4){ animation-delay:.45s } .wave i:nth-child(5){ animation-delay:.6s }
+    #tapSpeak.speaking .wave i { animation: waveActive .7s ease-in-out infinite; }
+    @keyframes waveIdle { 0%,100%{height:6px;opacity:.5} 50%{height:12px;opacity:1} }
+    @keyframes waveActive { 0%,100%{height:5px} 50%{height:18px} }
+
+    #micBtn {
+      width: 54px; height: 54px; border-radius: 50%;
+      background: rgba(255,255,255,0.02); border: 1px solid var(--line);
+      color: var(--gold-bright); cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: border-color .4s ease, background .4s ease, transform .3s ease;
+    }
+    #micBtn:hover { border-color: var(--gold); background: rgba(217,182,115,0.08); transform: translateY(-1px); }
+    #micBtn svg { width: 22px; height: 22px; }
+
+    /* =====================  RIGHT  ===================== */
+    #right {
+      flex: 1 1 auto; height: 100%; overflow-y: auto; position: relative;
+      padding: 40px 52px 44px;
+      display: flex; flex-direction: column;
+      background:
+        radial-gradient(120% 80% at 80% -10%, rgba(217,182,115,0.04), transparent 60%),
+        var(--bg);
+    }
+    #right::-webkit-scrollbar { width: 8px; }
+    #right::-webkit-scrollbar-thumb { background: rgba(217,182,115,0.18); border-radius: 8px; }
+
+    /* language toggle */
+    #lang-toggle {
+      align-self: flex-end; display: flex; gap: 10px; margin-bottom: 18px;
+      opacity: 0; animation: fadeIn 1.6s ease .5s forwards;
+    }
+    .lang-btn {
+      padding: 9px 20px; border-radius: 30px;
+      background: rgba(255,255,255,0.015); border: 1px solid var(--line-soft);
+      color: var(--txt-dim); font-family: 'Jost', sans-serif; font-size: 14px; letter-spacing: 0.03em;
+      cursor: pointer; transition: all .4s ease;
+    }
+    .lang-btn:hover { color: var(--txt); border-color: var(--line); }
+    .lang-btn.active { color: var(--gold-bright); border-color: var(--gold); background: rgba(217,182,115,0.06); }
+
+    #right-head { text-align: center; opacity: 0; animation: fadeIn 1.8s ease .6s forwards; }
+    #right-head h1 {
+      font-family: 'Cormorant Garamond', serif; font-weight: 500;
+      font-size: 40px; letter-spacing: 0.02em; color: var(--gold-bright);
+    }
+    .divider { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 12px 0 14px; color: var(--gold); }
+    .divider::before, .divider::after { content: ""; height: 1px; width: 90px; background: linear-gradient(90deg, transparent, var(--gold)); }
+    .divider::after { background: linear-gradient(90deg, var(--gold), transparent); }
+    .divider span { font-size: 12px; opacity: .8; }
+    #right-head .subtitle { font-weight: 300; font-size: 16px; color: var(--txt-dim); letter-spacing: 0.04em; }
+
+    /* category grid */
+    .cards {
+      margin-top: 26px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      opacity: 0; animation: fadeIn 1.8s ease .8s forwards;
+    }
+    .card {
+      display: flex; align-items: center; gap: 18px;
+      padding: 16px 20px; border-radius: 14px;
+      background: linear-gradient(160deg, rgba(255,255,255,0.028), rgba(255,255,255,0.008));
+      border: 1px solid var(--line-soft); cursor: pointer;
+      transition: border-color .45s ease, transform .35s ease, box-shadow .5s ease, background .45s ease;
+    }
+    .card:hover {
+      border-color: rgba(217,182,115,0.5); transform: translateY(-3px);
+      box-shadow: 0 22px 50px -30px rgba(217,182,115,0.7);
+      background: linear-gradient(160deg, rgba(217,182,115,0.06), rgba(255,255,255,0.01));
+    }
+    .thumb {
+      flex: 0 0 78px; width: 78px; height: 78px; border-radius: 11px; overflow: hidden;
+      background: radial-gradient(circle at 50% 35%, #1a1a1d, #0a0a0b);
+      border: 1px solid var(--line-soft);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb.ph::after { content: "◇"; color: var(--gold-soft); font-size: 26px; }
+    .card .meta { flex: 1 1 auto; }
+    .card .meta .t { font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 24px; color: #f3ead6; line-height: 1.1; }
+    .card .meta .s { font-weight: 300; font-size: 13px; color: var(--txt-dim); margin-top: 3px; letter-spacing: 0.02em; }
+    .card .chev { color: var(--gold-soft); font-size: 20px; transition: transform .35s ease, color .35s ease; }
+    .card:hover .chev { transform: translateX(4px); color: var(--gold-bright); }
+
+    /* quick actions */
+    .quick {
+      margin-top: 18px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+      opacity: 0; animation: fadeIn 1.8s ease 1s forwards;
+    }
+    .qtile {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 16px 8px; border-radius: 12px;
+      background: rgba(255,255,255,0.014); border: 1px solid var(--line-soft);
+      cursor: pointer; text-align: center; transition: all .4s ease;
+    }
+    .qtile:hover { border-color: rgba(217,182,115,0.45); background: rgba(217,182,115,0.05); transform: translateY(-2px); }
+    .qtile svg { width: 24px; height: 24px; stroke: var(--gold); fill: none; }
+    .qtile .qt { font-size: 13px; color: #ece3d0; letter-spacing: 0.02em; }
+    .qtile .qs { font-size: 11px; color: var(--txt-dim); }
+
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    /* loading veil */
+    #veil {
+      position: fixed; inset: 0; z-index: 30; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; transition: opacity 1.2s ease;
+    }
+    #veil.hidden { opacity: 0; pointer-events: none; }
+    #veil .ring { width: 36px; height: 36px; border: 1px solid rgba(217,182,115,0.25); border-top-color: var(--gold); border-radius: 50%; animation: spin 1.1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* responsive: stack on narrow screens */
+    @media (max-width: 980px) {
+      #app { flex-direction: column; }
+      #left { flex: 0 0 44vh; max-width: none; width: 100%; border-right: none; border-bottom: 1px solid var(--line-soft); }
+      #left-ui { padding: 20px; }
+      #logo .ckc { font-size: 34px; }
+      #right { padding: 28px 22px 36px; }
+      #right-head h1 { font-size: 30px; }
+    }
+    @media (max-width: 620px) {
+      .cards { grid-template-columns: 1fr; }
+      .quick { grid-template-columns: repeat(3, 1fr); }
+      .card .meta .t { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- ===================== LEFT ===================== -->
+    <section id="left">
+      <div id="scene"></div>
+      <div id="left-ui">
+        <div id="logo">
+          <svg class="crown" viewBox="0 0 38 22" fill="none">
+            <path d="M2 20 L5 6 L12 13 L19 3 L26 13 L33 6 L36 20 Z" stroke="#d9b673" stroke-width="1.1" fill="rgba(217,182,115,0.10)" stroke-linejoin="round"/>
+            <circle cx="5" cy="5" r="1.6" fill="#d9b673"/><circle cx="19" cy="2" r="1.8" fill="#eccd8a"/><circle cx="33" cy="5" r="1.6" fill="#d9b673"/>
+          </svg>
+          <div class="ckc">CKC</div>
+          <div class="jw">JEWELLERS</div>
+          <div class="since">SINCE 1995</div>
+        </div>
+
+        <div id="entity-text">
+          <p id="subline">I'm here to help you find the perfect piece.</p>
+        </div>
+
+        <div id="speak-row">
+          <button id="tapSpeak" aria-label="Tap to speak">
+            <span class="wave"><i></i><i></i><i></i><i></i><i></i></span>
+            <span id="tapLabel">Tap to speak</span>
+          </button>
+          <button id="micBtn" aria-label="Microphone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== RIGHT ===================== -->
+    <section id="right">
+      <nav id="lang-toggle">
+        <button class="lang-btn active" data-lang="english">English</button>
+        <button class="lang-btn" data-lang="hindi">हिन्दी</button>
+        <button class="lang-btn" data-lang="kannada">ಕನ್ನಡ</button>
+      </nav>
+
+      <header id="right-head">
+        <h1>Your AI Jewellery Concierge</h1>
+        <div class="divider"><span>◇</span></div>
+        <p class="subtitle">How can I help you today?</p>
+      </header>
+
+      <div class="cards">
+        <div class="card"><div class="thumb"><img src="assets/img/diamond.png" alt="Diamonds" onerror="this.remove();this.parentNode.classList.add('ph')"></div><div class="meta"><div class="t">Diamonds</div><div class="s">Explore loose diamonds</div></div><div class="chev">›</div></div>
+        <div class="card"><div class="thumb"><img src="assets/img/necklace.png" alt="Necklaces" onerror="this.remove();this.parentNode.classList.add('ph')"></div><div class="meta"><div class="t">Necklaces</div><div class="s">Elegant &amp; timeless</div></div><div class="chev">›</div></div>
+        <div class="card"><div class="thumb"><img src="assets/img/ring.png" alt="Rings" onerror="this.remove();this.parentNode.classList.add('ph')"></div><div class="meta"><div class="t">Rings</div><div class="s">For every moment</div></div><div class="chev">›</div></div>
+        <div class="card"><div class="thumb"><img src="assets/img/earrings.png" alt="Earrings" onerror="this.remove();this.parentNode.classList.add('ph')"></div><div class="meta"><div class="t">Earrings</div><div class="s">Designed to shine</div></div><div class="chev">›</div></div>
+        <div class="card"><div class="thumb"><img src="assets/img/bangles.png" alt="Bangles" onerror="this.remove();this.parentNode.classList.add('ph')"></div><div class="meta"><div class="t">Bangles &amp; Bracelets</div><div class="s">Tradition &amp; beauty</div></div><div class="chev">›</div></div>
+        <div class="card"><div class="thumb"><img src="assets/img/pendant.png" alt="Pendants" onerror="this.remove();this.parentNode.classList.add('ph')"></div><div class="meta"><div class="t">Pendants</div><div class="s">Subtle &amp; sophisticated</div></div><div class="chev">›</div></div>
+      </div>
+
+      <div class="quick">
+        <div class="qtile"><svg viewBox="0 0 24 24" stroke-width="1.3"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3 6 9l6 12 6-12-3-6"/></svg><div class="qt">Diamond Guide</div><div class="qs">4Cs &amp; more</div></div>
+        <div class="qtile"><svg viewBox="0 0 24 24" stroke-width="1.3"><path d="M12 3v18M5 7h14M5 7l-3 6h6zM19 7l-3 6h6z"/></svg><div class="qt">Compare</div><div class="qs">Find the best</div></div>
+        <div class="qtile"><svg viewBox="0 0 24 24" stroke-width="1.3"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.3 1.1 6.1L12 16.9 6.4 19.7l1.1-6.1L3 9.3l6.4-.7z"/></svg><div class="qt">Collections</div><div class="qs">Curated for you</div></div>
+        <div class="qtile"><svg viewBox="0 0 24 24" stroke-width="1.3"><path d="M3 12 12 3h7v7l-9 9z"/><circle cx="15.5" cy="8.5" r="1.3"/></svg><div class="qt">Offers</div><div class="qs">Exclusive deals</div></div>
+        <div class="qtile"><svg viewBox="0 0 24 24" stroke-width="1.3"><path d="M21 12a8 8 0 1 1-3.2-6.4M21 5v4h-4"/><circle cx="9" cy="12" r=".5"/><circle cx="12" cy="12" r=".5"/><circle cx="15" cy="12" r=".5"/></svg><div class="qt">Ask Anything</div><div class="qs">I'm here to help</div></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="veil"><div class="ring"></div></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

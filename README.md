@@ -1,82 +1,70 @@
 # CKC Jewellers · AI Concierge
 
-A premium, single-page AI-concierge demonstration for a luxury jewellery
-showroom. A programmatically faceted **brilliant-cut diamond** entity reacts in
-real time to pre-recorded voice-overs in three languages, set inside a
-two-panel concierge interface.
+A landscape, table-side AI concierge demo. A 3D entity (molten gold by default) speaks with a
+real voice, and **every spoken word drives a pulse** on the entity and lights up the caption.
+As it talks, it glides left and brings in live UI cards on the right: gold rate, savings plan,
+product and price breakdown, and a UPI QR code.
 
-> **Demonstration only** — there is no speech recognition. Selecting a language
-> and pressing **Tap to speak** plays a local audio file; the diamond reacts to
-> the real audio spectrum via the Web Audio API, and on-screen captions advance
-> in sync with the voice.
-
-## Run it
+## Run
 
 ```bash
-node server.js          # → http://localhost:5173
+node server.js          # → http://localhost:5173  (Node 18+, no npm install)
 ```
 
-(Any static server works, e.g. `python3 -m http.server 5173`.) Open the URL,
-pick a language top-right, and press **Tap to speak**. A click is required first
-so the browser may start audio (standard autoplay policy).
+Keys are read from `.env` (`OPEN_AI_KEY`, `ELEVENLABS_API_KEY`). Open the page and wait for
+**Settings** until English, Hindi and Kannada each show 25/25 (first load generates and caches the voice to `voice-cache/`).
+Then press **Begin** (or Enter). Press **F** for fullscreen.
 
-## Layout
+## Languages
 
-- **Left panel** — CKC logo, the live 3D diamond entity (golden particles, glow,
-  audio-reactive), a synced caption line, and the **Tap to speak** / mic controls.
-- **Right panel** — "Your AI Jewellery Concierge" with a 6-category grid
-  (Diamonds, Necklaces, Rings, Earrings, Bangles & Bracelets, Pendants) and a row
-  of quick actions (Diamond Guide, Compare, Collections, Offers, Ask Anything).
+English, हिंदी and ಕನ್ನಡ, chosen with the picker on the welcome screen (or **L**). Every scripted line, chip and the menu card
+are translated. Numbers and trade terms (gold rate, karat, UPI, GST) stay in English inside Hindi and Kannada sentences,
+the way people talk in Bengaluru showrooms. Live questions are transcribed and answered in the chosen language.
+Voices: `eleven_multilingual_v2` for English and Hindi; `eleven_v3` for Kannada (v2 garbles it). v3 is slow (about 8s for a
+short live answer), so the concierge says a pre-voiced "one moment" first. Scripted lines are all pre-cached.
 
-## How it works
+## Guided-live mode
 
-| Concern | Implementation |
-| --- | --- |
-| Entity | Custom faceted brilliant-cut geometry, self-illuminated crystal shader (facet shading + fresnel rim), bounded brightness — renders reliably on any GPU |
-| Internal caustics | Fresnel glow core + drifting inner sparks + a soft "heart" point |
-| Atmosphere | 1,300 golden particles + 420 white sparkles (GPU shader drift / twinkle) |
-| Glow | `EffectComposer` + `UnrealBloomPass`, tuned so only highlights bloom |
-| Camera | Perspective camera fitted to the left panel, gentle `OrbitControls` auto-orbit |
-| Audio reaction | Web Audio `AnalyserNode` → RMS loudness + bass/mid/treble bands (fast attack / slow release so it never jitters) |
-| Captions | `transcripts.js` lines revealed by playback progress, weighted by line length |
+* **Scripted flows:** each line is voiced by ElevenLabs *with word timestamps*, so panel reveals,
+  caption highlights and entity pulses land on the exact word ("…twenty-two karat is **₹12,571**…").
+* **Live voice:** tap the mic, or press **Space**, and speak. `gpt-4o-transcribe` transcribes the speech.
+  `gpt-4.1-mini` then either starts a flow, picks an on-screen option ("the earrings", "ten thousand",
+  "yes please"), or answers a free-form question. Answers are spoken with the same word-synced voice.
+  Tapping the mic while it's talking interrupts it.
+* **Live gold rate:** COMEX gold × USD/INR (Yahoo Finance) plus ~6.5% import duty/premium gives an
+  indicative Indian retail rate, with 22K/18K derived from it. Falls back to fixed figures if offline.
 
-## Content you can edit
+### Flows
+1. **Today's gold rate:** 22K/24K/18K/silver card plus a one-month trend. The spoken line adapts to
+   whether gold is up or down.
+2. **Gold Savings Plan:** 11 + 1 month plan, choose ₹5k/₹10k/₹25k, maturity summary, then a UPI QR for
+   the first instalment, then confirmation.
+3. **Explore & buy:** three pieces, then product and price breakdown (gold × today's rate + diamonds + making
+   + 3% GST), then a UPI QR with the amount, then confirmation.
 
-- **Voice-overs** — `assets/audio/{english,hindi,kannada}.mp3`
-- **Transcripts / captions** — `transcripts.js` (lines per language; source in `subtitle.md`)
-- **Category images** — `assets/img/{diamond,necklace,ring,earrings,bangles,pendant}.png`
-  (1024² recommended; cards fall back to a placeholder glyph if an image is missing)
+## Presenter keys
+`Space` talk · `Enter` begin · `1/2/3` jump to a flow · `P` or click the QR to confirm payment ·
+`R`/`Esc` reset · `L` language · `S` settings (switch entity: Molten Gold / Crystal Diamond / Classic) · `F` fullscreen
+
+## Edit content
+* `public/js/config.js`: products, prices, **savings-scheme terms (placeholder, replace with CKC's real
+  scheme)**, UPI payee (**dummy VPA**, replace with the merchant VPA for real payments).
+* `public/js/flows.js`: everything the concierge says. `[[cue]]` = bring in a panel on the next word,
+  `{₹12,571|twelve thousand…}` = show one thing and say another, `*words*` = emphasis (bigger pulse).
+* `.env` optional overrides: `VOICE_ID`, `TTS_MODEL`, `CHAT_MODEL`, `STT_MODEL`.
 
 ## Files
-
 ```
-index.html            two-panel concierge layout + styling
-main.js               Three.js diamond + audio-reactive engine + UI wiring
-transcripts.js        caption lines per language
-server.js             minimal static file server
-assets/audio/         voice-overs
-assets/img/           category product images
-versions/             saved benchmarks (see below)
-```
-
-## Benchmark / revert
-
-The previous **full-screen centred-diamond** version is preserved at
-`versions/v1-centered-diamond/` (`index.html` + `main.js`). To revert:
-
-```bash
-cp versions/v1-centered-diamond/index.html versions/v1-centered-diamond/main.js .
+server.js                 static server + /api (gold-rate, speak, transcribe, route)
+public/index.html         layout
+public/styles.css         design
+public/js/app.js          orchestration: state, flows runner, mic, captions, settings, keys
+public/js/voice.js        script parser, word-synced Speaker, Listener (VAD)
+public/js/flows.js        conversation scripts
+public/js/panels.js       right-hand cards
+public/js/stage/          Three.js stage + entities (goldOrb, crystal, classic)
+public/legacy/            previous version (reference)
 ```
 
-(The current two-panel files are the live `index.html` / `main.js`. Snapshot them
-first if you want to keep this version before reverting.)
-
-## Dev flags (query string, no-ops on normal load)
-
-`?nobloom` · `?noparticles` · `?nocore` · `?loud` (pins the reactive level high
-to preview the speaking state without audio).
-
-## Tech
-
-Three.js 0.160 (CDN import map) · OrbitControls · EffectComposer ·
-UnrealBloomPass · Web Audio API. No React, no build step, no frameworks.
+Dev: `?shot=menu|rate|plan|summary|gallery|price|upi|success` renders a screen without audio.
+`?nobloom` disables bloom.

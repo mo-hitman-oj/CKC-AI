@@ -1,0 +1,7 @@
+{
+  "buildCommand": "mkdir -p public/voice && cp voice-cache/* public/voice/",
+  "outputDirectory": "public",
+  "functions": {
+    "api/*.js": { "includeFiles": "voice-cache/**", "maxDuration": 60 }
+  }
+}

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CKC Concierge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Jost:wght@300;400;500&family=Noto+Serif+Devanagari:wght@300;400;500&family=Noto+Serif+Kannada:wght@300;400;500&family=Noto+Sans+Devanagari:wght@300;400&family=Noto+Sans+Kannada:wght@300;400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script type="importmap">
+    { "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body data-state="attract">
+  <div id="stage"></div>
+  <div id="vignette"></div>
+
+  <header id="top">
+    <button id="home" class="logo" title="Home (R)">
+      <svg class="crown" viewBox="0 0 38 22" fill="none">
+        <path d="M2 20 L5 6 L12 13 L19 3 L26 13 L33 6 L36 20 Z" stroke="#d9b673" stroke-width="1.1" fill="rgba(217,182,115,0.10)" stroke-linejoin="round"/>
+        <circle cx="5" cy="5" r="1.6" fill="#d9b673"/><circle cx="19" cy="2" r="1.8" fill="#eccd8a"/><circle cx="33" cy="5" r="1.6" fill="#d9b673"/>
+      </svg>
+      <span class="wordmark"><b>CKC</b><small>JEWELLERS</small></span>
+    </button>
+    <div class="top-right">
+      <div id="ticker"></div>
+      <span id="clock"></span>
+      <button id="gear" title="Settings (S)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section id="attract">
+    <p class="namaskara">Namaskara</p>
+    <p class="sub">Welcome to CKC Jewellers — your personal concierge</p>
+    <div class="langs" role="group" aria-label="Language">
+      <button data-lang="en">English</button><button data-lang="hi">हिंदी</button><button data-lang="kn">ಕನ್ನಡ</button>
+    </div>
+    <button id="begin"><span>Begin</span><i></i></button>
+  </section>
+
+  <section id="conv">
+    <div id="caption" aria-live="polite"></div>
+    <div id="dock">
+      <div id="chips"></div>
+      <button id="mic" title="Speak (Space)">
+        <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <span class="ring"></span><span class="ring r2"></span>
+      </button>
+    </div>
+  </section>
+
+  <main id="panels"></main>
+
+  <aside id="settings">
+    <header><h2>Settings</h2><button id="settings-close">✕</button></header>
+    <h3>Concierge entity</h3>
+    <div class="entities">
+      <button data-entity="gold"><i class="sw gold"></i><b>Molten Gold</b><small>Liquid gold orb</small></button>
+      <button data-entity="crystal"><i class="sw crystal"></i><b>Crystal Diamond</b><small>Refractive brilliant cut</small></button>
+      <button data-entity="classic"><i class="sw classic"></i><b>Classic</b><small>Original sapphire diamond</small></button>
+    </div>
+    <h3>Language</h3>
+    <div class="langs in-settings"><button data-lang="en">English</button><button data-lang="hi">हिंदी</button><button data-lang="kn">ಕನ್ನಡ</button></div>
+    <h3>Demo</h3>
+    <label class="opt"><input type="checkbox" id="opt-captions" /> <span>Show spoken captions</span></label>
+    <label class="opt"><input type="checkbox" id="opt-autopay" /> <span>Auto-confirm UPI payment after 7s</span></label>
+    <p id="voice-status">Loading…</p>
+    <h3>Presenter keys</h3>
+    <dl class="keys">
+      <dt>Space</dt><dd>Talk to the concierge</dd>
+      <dt>Enter</dt><dd>Begin (welcome)</dd>
+      <dt>1 · 2 · 3</dt><dd>Gold rate · Savings plan · Explore &amp; buy</dd>
+      <dt>P</dt><dd>Confirm payment (or click the QR)</dd>
+      <dt>R / Esc</dt><dd>Reset to welcome screen</dd>
+      <dt>F</dt><dd>Fullscreen</dd>
+      <dt>L</dt><dd>Switch language (English · हिंदी · ಕನ್ನಡ)</dd>
+      <dt>S</dt><dd>This panel</dd>
+    </dl>
+  </aside>
+
+  <div id="toast"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

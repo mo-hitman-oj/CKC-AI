@@ -1,0 +1,59 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Stage test</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>html,body{margin:0;height:100%;background:#07060a;overflow:hidden;font:13px system-ui;color:#eee}
+#bg{position:fixed;inset:0}#ui{position:fixed;left:12px;bottom:12px;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
+button{background:#1b1712;color:#e8cf9a;border:1px solid #5a4a2a;border-radius:6px;padding:6px 10px;cursor:pointer}
+#fps{position:fixed;right:12px;top:10px;z-index:2;opacity:.6}
+#cards{position:fixed;right:4%;top:14%;width:48%;height:70%;border:1px dashed rgba(217,182,115,.25);border-radius:16px;display:none;z-index:1}
+</style></head><body>
+<div id="bg"></div><div id="cards"></div><div id="fps"></div>
+<div id="ui">
+<button data-e="gold">Gold</button><button data-e="crystal">Crystal</button><button data-e="classic">Classic</button>
+<button data-l="center">Center</button><button data-l="left">Left</button>
+<button data-m="idle">Idle</button><button data-m="listening">Listening</button><button data-m="thinking">Thinking</button>
+<button id="speak">Fake speech</button><button id="hit">Pulse!</button>
+</div>
+<script>window.onerror=(m)=>{document.title='ERR '+m;const d=document.createElement('div');d.style.cssText='position:fixed;top:40px;left:10px;color:red;z-index:9';d.textContent='ERR '+m;document.body.appendChild(d)};</script>
+<script type="module">
+import { createStage } from './stage.js';
+const q = new URLSearchParams(location.search);
+const stage = createStage(document.getElementById('bg'), { entity: q.get('entity') || 'gold' });
+window.stage = stage;
+const cards = document.getElementById('cards');
+const setLayout = (l, o) => { stage.setLayout(l, o); cards.style.display = l === 'left' ? 'block' : 'none'; };
+if (q.get('layout')) setLayout(q.get('layout'), { instant: true });
+if (q.get('mode')) stage.setMode(q.get('mode'));
+document.querySelectorAll('[data-e]').forEach(b => b.onclick = () => stage.setEntity(b.dataset.e));
+document.querySelectorAll('[data-l]').forEach(b => b.onclick = () => setLayout(b.dataset.l));
+document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => stage.setMode(b.dataset.m));
+document.getElementById('hit').onclick = () => stage.pulse(1);
+let speaking = false, t0 = 0;
+function fakeSpeech(){
+  speaking = true; stage.setMode('speaking'); t0 = performance.now();
+  let t = 0;
+  for (let i = 0; i < 28; i++) {
+    t += 180 + Math.random() * 260;
+    const emph = Math.random() < 0.18;
+    setTimeout(() => stage.pulse(emph ? 1 : 0.35 + Math.random() * 0.15), t);
+  }
+  setTimeout(() => { speaking = false; stage.setMode('idle'); }, t + 400);
+}
+document.getElementById('speak').onclick = fakeSpeech;
+if (q.get('speak')) fakeSpeech();
+if (q.get('swapTo')) setTimeout(() => { window.__sw = 'called'; stage.setEntity(q.get('swapTo')); window.__sw = 'done'; }, 300);
+if (q.get('hit')) setTimeout(() => stage.pulse(1), +q.get('hit'));
+function tick(){
+  requestAnimationFrame(tick);
+  if (speaking) {
+    const e = (performance.now() - t0) / 1000;
+    const lv = 0.35 + 0.3 * Math.abs(Math.sin(e * 9)) * Math.abs(Math.sin(e * 2.3));
+    stage.setSignal({ level: lv, bass: lv * 0.8, mid: lv * 0.9, treble: lv * 0.6 });
+  } else if (q.get('level')) {
+    const lv = +q.get('level'); stage.setSignal({ level: lv, bass: lv, mid: lv, treble: lv });
+  }
+}
+tick();
+let frames = 0, last = performance.now();
+(function f(){ requestAnimationFrame(f); frames++; const n = performance.now(); if (n - last > 1000) { document.getElementById('fps').textContent = frames + ' fps ' + (q.get('debug') ? stage.entity + ' ' + window.__sw + ' ' + JSON.stringify(stage._debug()) : ''); frames = 0; last = n; } })();
+</script></body></html>

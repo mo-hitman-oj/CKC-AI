@@ -237,7 +237,7 @@ async function handle(req, res) {
   }
 }
 
-module.exports = { handle };
+module.exports = handle; // Vercel entrypoint (default export)
 if (require.main === module) http.createServer(handle).listen(PORT, () => {
   console.log(`\n  CKC Jewellers · AI Concierge`);
   console.log(`  ▸ http://localhost:${PORT}`);
